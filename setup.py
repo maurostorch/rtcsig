@@ -2,15 +2,13 @@ import os
 from setuptools import setup
 
 
-PATH_BASE = os.path.dirname(__file__)
-
 setup(
     name='rtcsig',
-    version='0.1',
+    version='0.1.2',
     url='https://github.com/maurostorch/rtcsig',
 
     description='This is a Django App for handle the session exchanging of a WebRTC peer interconnection',
-    long_description=('README'),
+    long_description='This is a Django App for handle the session exchanging of a WebRTC peer interconnection',
     license='The MIT License (MIT)',
 
     author='Mauro Storch',
