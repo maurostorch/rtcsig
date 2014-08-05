@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+</head>
+<body>
+<button id="go" value="go" onclick="go();">Go</button><br/>
+<div id="log"></div>
+<script src="/static/js/jquery-1.11.0.min.js"></script>
+<script src="/static/js/csrf.js"></script>
+<script src="/static/js/rtc.js"></script>
+<script>
+var node = new rtcnode();
+node.init();
+node.addMessageListner(function(msg){
+	$('#log').html(msg+'<br/>');
+});
+function go(){
+	node.sendMessage("Goooooo");
+}
+</script>
+</body>
+</html>
