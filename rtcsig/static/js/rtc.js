@@ -17,12 +17,12 @@ rtcpeer.prototype = {
 	},
 	configuration : {
 	  'iceServers': [
-		{'url':'turn:numb.viagenie.ca','credential':'1q2w3e4r','username':'mauro@storchlab.com'}
-		,{ 'url': 'stun:stunserver.org'}
-		,{ 'url': 'stun:stun.ekiga.net'}
-		,{ 'url': 'stun:stun.schlund.de'}
-		,{ 'url': 'stun:stun3.l.google.com:19302'}
-		,{ 'url': 'stun:stun.l.google.com:19302'}
+		//{'url':'turn:numb.viagenie.ca','credential':'1q2w3e4r','username':'mauro@storchlab.com'},
+		//{ 'url': 'stun:stunserver.org'},
+		//{ 'url': 'stun:stun.ekiga.net'},
+		//{ 'url': 'stun:stun.schlund.de'},
+		//{ 'url': 'stun:stun3.l.google.com:19302'},
+		{ 'url': 'stun:stun.l.google.com:19302'}
 		]
 	},
 	options : {
@@ -31,7 +31,7 @@ rtcpeer.prototype = {
 		{RtpDataChannels: true}
 		]
 	},
-	mediaConstraints : {'mandatory': {
+	mediaConstraints : {'mandatory':{
 		'OfferToReceiveAudio':false,
 		'OfferToReceiveVideo':false
 		}
@@ -44,7 +44,8 @@ rtcpeer.prototype = {
 		console.log(new Error('dummy').stack);
 	},
 	init : function(callback){ //the callback is called for every icecandidate
-		this.pc = new PeerConnection(this.configuration,this.options);
+		//this.pc = new PeerConnection(this.configuration,this.options);
+		this.pc = new PeerConnection(null);
 		var that = this;
 		this.pc.ondatachannel = function(event){
 			that.handleChannel(event.channel);
@@ -53,10 +54,10 @@ rtcpeer.prototype = {
 			if (event.candidate) {
 				console.log("candidate: "+JSON.stringify(event.candidate));
 				that.candidates.push(JSON.stringify(event.candidate));
-				if (JSON.parse(that.localDesc).type == 'offer')
+				//if (JSON.parse(that.localDesc).type == 'offer')
 					callback(that.localDesc,event.candidate);
-				else
-					callback(that.remoteDesc,event.candidate);
+				//else
+				//	callback(that.remoteDesc,event.candidate);
 			}
 		};
 	},
@@ -126,10 +127,11 @@ rtcpeer.prototype = {
 			for (key in this.channelList){
 				var c = this.channelList[key];
 				var readyState = c.readyState;
-				if (readyState == "open") {
+				try{
 					c.send(msg);
-				}else{
-					console.warn("dataChannel could not send message, state:"+readyState);
+				} catch(err) {
+					console.warn('dataChannel could not send message, state:'+readyState);
+					console.err(err);
 				}
 			}
 		}
@@ -181,7 +183,7 @@ rtcnode.prototype = {
 		setTimeout(function(){
 			if(that.remotePeers.length == 0){
 				that.offerNewPeer();
-				setTimeout(function(){that.searchForCandidates();},3000);
+				//setTimeout(function(){that.searchForCandidates();},3000);
 			}
 		},3000);
 		//setTimeout(function(){that.searchForCandidates();},1500);
@@ -192,17 +194,16 @@ rtcnode.prototype = {
 		newpeer.init(function(localDesc, candidate){
 			if (candidate != undefined){
 				$.ajax({
-					url: '/rtcsig/candidate/',
-					data: 'desc='+localDesc+'&candidate='+JSON.stringify(candidate),
+					url: '/rtcsig/candidate',
+					data: 'desc='+localDesc+'&candidate='+JSON.stringify(candidate)+'&csrfmiddlewaretoken='+getCookie('csrftoken'),
 					type: 'POST',
 					success: function(d){},
-					error: function(x,s,e){}
+					error: function(x,s,e){console.log(x);console.log(s);console.log(e);}
 				});
 			}
 		});
 		var that = this;
 		newpeer.addMessageListner(function(msg){
-			console.log(that.messageListners);
 			for (var i=0;i<that.messageListners.length;i++){
 				var l = that.messageListners[i];
 				l(msg);
@@ -210,8 +211,8 @@ rtcnode.prototype = {
 		});
 		newpeer.offerCon(function(desc){
 			$.ajax({
-				url: '/rtcsig/offer/',
-				data: 'offerdesc='+desc,
+				url: '/rtcsig/offer',
+				data: 'offerdesc='+desc+'&csrfmiddlewaretoken='+getCookie('csrftoken'),
 				type: 'POST',
 				success: function(d){
 					setTimeout(function(){that.searchForAnswers();},3000);
@@ -228,8 +229,8 @@ rtcnode.prototype = {
 		newpeer.init(function(localDesc,candidate){
 			if (candidate != undefined){
 				$.ajax({
-					url: '/rtcsig/candidate/',
-					data: 'desc='+localDesc+'&candidate='+JSON.stringify(candidate),
+					url: '/rtcsig/candidate',
+					data: 'desc='+localDesc+'&candidate='+JSON.stringify(candidate)+'&csrfmiddlewaretoken='+getCookie('csrftoken'),
 					type: 'POST',
 					success: function(d){},
 					error: function(x,s,e){}
@@ -245,14 +246,13 @@ rtcnode.prototype = {
 			}
 		});
 		newpeer.answer(offerDesc,function(desc){
-			var that = this;
 			$.ajax({
-				url: '/rtcsig/answer/',
-				data: 'desc='+offerDesc+'&answers='+desc,
+				url: '/rtcsig/answer',
+				data: 'desc='+offerDesc+'&answers='+desc+'&csrfmiddlewaretoken='+getCookie('csrftoken'),
 				type: 'POST',
 				success: function(d){
 					console.log(newpeer);
-					that.searchForCandidates();
+					setTimeout(function(){that.searchForCandidates();},2000);
 					//if (that.localPeers != undefined || that.localPeers.length > 0)
 					//	setTimeout(function(){that.searchForAnswers();},2000);
 				},
@@ -268,8 +268,8 @@ rtcnode.prototype = {
 		for (var i=0;i<that.remotePeers.length;i++) o = o + that.remotePeers[i].localDesc;
 		if (o == '') o = 'firstcall';
 		$.ajax({
-			url: '/rtcsig/offer/',
-			data: 'offerdesc='+o,
+			url: '/rtcsig/offer',
+			data: 'offerdesc='+o+'&csrfmiddlewaretoken='+getCookie('csrftoken'),
 			success: function(data){
 				var hasme = false;
 				for (var i=0;i<data.length;i++){
@@ -300,8 +300,8 @@ rtcnode.prototype = {
 		var p = this.lastestLocal;
 		var shouldcreate = true;
 		$.ajax({
-			url: '/rtcsig/answer/',
-			data: 'desc='+p.localDesc,
+			url: '/rtcsig/answer',
+			data: 'desc='+p.localDesc+'&csrfmiddlewaretoken='+getCookie('csrftoken'),
 			success: function(d){
 				if (d.length > 0){
 					console.log(p);
@@ -324,18 +324,22 @@ rtcnode.prototype = {
 	},
 	searchForCandidates: function(){
 		var that = this;
-		var p;
-		for (var i=0;i<this.localPeers.length;i++){
-			p = this.localPeers[i];
+		var p; var l = [];
+		for (var i=0;i<this.localPeers.length;i++)l.push(this.localPeers[i]);
+		for (var i=0;i<this.remotePeers.length;i++)l.push(this.remotePeers[i]);
+		for (var i=0;i<l.length;i++){
+			p = l[i];
+			if (p.remoteDesc)
 			if (p.pc.iceConnectionState == 'new'
 				|| p.pc.iceConnectionState == 'connected'
 				|| p.pc.iceConnectionState == 'checking'){
 				//console.log('> new peer searching for candidates')
 				$.ajax({
-					url: '/rtcsig/candidate/',
-					data: 'desc='+p.localDesc,
+					url: '/rtcsig/candidate',
+					data: 'desc='+p.remoteDesc+'&csrfmiddlewaretoken='+getCookie('csrftoken'),
 					success: function(d){
 						for(var i=0;i<d.length;i++){
+							console.log('new candidate found:'+JSON.stringify(d[i]));
 							p.cand(JSON.stringify(d[i]));
 						}
 						if (!d || d.length == 0){
