@@ -20,8 +20,8 @@ rtcpeer.prototype = {
 		//{'url':'turn:numb.viagenie.ca','credential':'1q2w3e4r','username':'mauro@storchlab.com'},
 		//{ 'url': 'stun:stunserver.org'},
 		//{ 'url': 'stun:stun.ekiga.net'},
-		//{ 'url': 'stun:stun.schlund.de'},
-		//{ 'url': 'stun:stun3.l.google.com:19302'},
+		{ 'url': 'stun:stun.schlund.de'},
+		{ 'url': 'stun:stun3.l.google.com:19302'},
 		{ 'url': 'stun:stun.l.google.com:19302'}
 		]
 	},
@@ -45,7 +45,7 @@ rtcpeer.prototype = {
 	},
 	init : function(callback){ //the callback is called for every icecandidate
 		//this.pc = new PeerConnection(this.configuration,this.options);
-		this.pc = new PeerConnection(null);
+		this.pc = new PeerConnection(this.configuration);
 		var that = this;
 		this.pc.ondatachannel = function(event){
 			that.handleChannel(event.channel);
@@ -70,7 +70,7 @@ rtcpeer.prototype = {
 			that.localDesc = JSON.stringify(desc);
 			callback(JSON.stringify(desc));
 			that.pc.setLocalDescription(desc,function(e){},that.errorHandler);
-		}, this.errorHandler, this.mediaConstraints);
+		}, this.errorHandler, null);//this.mediaConstraints);
 	},
 	handleMessage: function(msg){
 		for (var i=0;i<this.messageListners.length;i++){
@@ -152,7 +152,7 @@ rtcpeer.prototype = {
 						that.localDesc = JSON.stringify(desc);
 						callback(that.localDesc);
 						that.pc.setLocalDescription(desc);
-					},that.errorHandler,that.mediaConstraints);
+					},that.errorHandler,null);//that.mediaConstraints);
 				},this.errorHandler);
 		} catch (e) {console.log(e);}
 	},
@@ -167,7 +167,7 @@ rtcpeer.prototype = {
 		this.pc.setRemoteDescription(desc,function(){console.log("done");},this.errorHandler);
 	},
 	cand : function(ta){
-		this.pc.addIceCandidate(new IceCandidate(JSON.parse(ta)));
+		this.pc.addIceCandidate(new IceCandidate(JSON.parse(ta)),function(a){console.log('success:'+a);},function(a){console.log('fail:'+a);});
 	}
 }
 function rtcnode(){}
